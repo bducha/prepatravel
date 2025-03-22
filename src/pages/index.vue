@@ -2,9 +2,7 @@
   <div id="map" ref="mapContainer"></div>
   <div>
     <v-btn @click="mapState = 'adding_point'">Add a point</v-btn>
-    <div v-for="node in (mapNodes ?? [])">
-      {{ node.name }}
-    </div>
+    <MapNodesList />
   </div>
 </template>
 
@@ -12,10 +10,9 @@
 import "leaflet/dist/leaflet.css"
 
 import L, { Map } from "leaflet"
-import { db, type MapNode } from "@/core/db/db"
-import { useObservable } from "@vueuse/rxjs"
-import { liveQuery } from "dexie"
-import {from } from "rxjs";
+import { db } from "@/core/db/db"
+import MapNodesList from "@/components/MapNodesList.vue"
+import { useMapStore } from "@/core/db/store/mapStore"
 
 const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -28,12 +25,12 @@ const mapEventStates = ['adding_point']
 
 const mapState = ref<typeof mapEventStates[number] | null>(null)
 
-const mapNodes = useObservable<MapNode[]>(from(liveQuery(() => db.mapNodes.toArray())))
+const store = useMapStore()
+
 
 onMounted(() => {
   map.value = L.map(mapref.value as HTMLElement).setView([46, 0], 5)
-  L.tileLayer(TILE_URL, { attribution: ATTRIBUTION }).addTo(map.value)
-  console.log(map.value)
+  L.tileLayer(TILE_URL, { attribution: ATTRIBUTION }).addTo(map.value as Map)
 
   map.value.on('click', mapClicked)
 
@@ -46,6 +43,18 @@ onMounted(() => {
   }).catch((err) => {
     console.error(err)
   })
+})
+
+watch(() => store.focusedNode, (newId, oldId) => {
+  if (!map.value) return
+  if (!!newId) {
+    db.mapNodes.get(newId).then((node) => {
+      if (!node) return
+      map.value?.setView([node.lat, node.lng], 7, {animate: true})
+    }).catch((err) => {
+      console.error(err)
+    })
+  }
 })
 
 
@@ -65,7 +74,7 @@ const mapClicked = (e: L.LeafletMouseEvent) => {
 
         L.marker(
           [e.latlng.lat, e.latlng.lng],
-        ).addTo(map.value)
+        ).addTo(map.value as Map)
       }).catch((err) => {
         console.error(err)
       })

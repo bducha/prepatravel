@@ -10,9 +10,11 @@ import router from '../router'
 
 // Types
 import type { App } from 'vue'
+import { pinia } from './pinia'
 
 export function registerPlugins (app: App) {
   app
     .use(vuetify)
+    .use(pinia)
     .use(router)
 }
