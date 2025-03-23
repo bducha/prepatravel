@@ -6,7 +6,7 @@
     </div>
     <div id="list">
       <v-btn @click="mapState = 'adding_point'">Add a point</v-btn>
-      <MapNodesList @node-deleted="handleNodeDeleted" />
+      <MapNodesList @node-deleted="handleNodeDeleted" :edit-node-id="newlyCreatedNodeId" />
     </div>
   </div>
 </template>
@@ -30,6 +30,8 @@ const mapHeight = ref(Math.min(
   ),
   window.innerHeight * 0.8
 ))
+
+const newlyCreatedNodeId = ref<number | null>(null)
 
 const map = ref<Map | null>(null);
 
@@ -92,7 +94,15 @@ watch(() => store.selectedNode, (newId, oldId) => {
   if (!!newId) {
     db.mapNodes.get(newId).then((node) => {
       if (!node) return
-      map.value?.setView([node.lat, node.lng], 7, { animate: true })
+
+      const currentZoom = map.value?.getZoom() || 0
+      const targetZoom = 7
+
+      if (currentZoom <= targetZoom) {
+        map.value?.setView([node.lat, node.lng], targetZoom, { animate: true })
+      }
+
+
     }).catch((err) => {
       console.error(err)
     })
@@ -128,7 +138,7 @@ const mapClicked = (e: L.LeafletMouseEvent) => {
     case 'adding_point':
       console.log(map.value)
       db.mapNodes.add({
-        name: 'New point',
+        name: '',  // Empty name to trigger edit mode
         description: '',
         lat: e.latlng.lat,
         lng: e.latlng.lng,
@@ -137,6 +147,12 @@ const mapClicked = (e: L.LeafletMouseEvent) => {
       }).then((id) => {
         console.log(id)
         addNodeMarker(e.latlng.lat, e.latlng.lng, id)
+        store.setSelectedNode(id)
+        newlyCreatedNodeId.value = id
+        // Reset the edit node id after a short delay to allow the card to be created
+        setTimeout(() => {
+          newlyCreatedNodeId.value = null
+        }, 100)
       }).catch((err) => {
         console.error(err)
       })
