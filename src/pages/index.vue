@@ -6,7 +6,7 @@
     </div>
     <div id="list">
       <v-btn @click="mapState = 'adding_point'">Add a point</v-btn>
-      <MapNodesList />
+      <MapNodesList @node-deleted="handleNodeDeleted" />
     </div>
   </div>
 </template>
@@ -33,7 +33,7 @@ const mapState = ref<typeof mapEventStates[number] | null>(null)
 
 const store = useMapStore()
 
-const mapNodeMarkers: { [key: number]: L.Marker } = {}
+const mapNodeMarkers = ref<{ [key: number]: L.Marker }>({})
 
 
 onMounted(() => {
@@ -84,13 +84,13 @@ watch(() => store.selectedNode, (newId, oldId) => {
 })
 
 const addNodeMarker = (lat: number, lng: number, id: number) => {
-  mapNodeMarkers[id] = L.marker(
+  mapNodeMarkers.value[id] = L.marker(
     [lat, lng],
   ).addTo(map.value as Map)
 
-  mapNodeMarkers[id].on('click', () => markerClicked(id))
-  mapNodeMarkers[id].on('mouseover', () => markerMouseEntered(id))
-  mapNodeMarkers[id].on('mouseout', () => markerMouseLeft(id))
+  mapNodeMarkers.value[id].on('click', () => markerClicked(id))
+  mapNodeMarkers.value[id].on('mouseover', () => markerMouseEntered(id))
+  mapNodeMarkers.value[id].on('mouseout', () => markerMouseLeft(id))
 }
 
 const markerClicked = (id: number) => {
@@ -130,6 +130,26 @@ const mapClicked = (e: L.LeafletMouseEvent) => {
 
       break;
   }
+}
+
+const handleNodeDeleted = (id: number) => {
+  if (mapNodeMarkers.value[id]) {
+    map.value?.removeLayer(mapNodeMarkers.value[id])
+    delete mapNodeMarkers.value[id]
+  }
+  if (store.selectedNode === id) {
+    store.setSelectedNode(null)
+  }
+  if (store.focusedNode === id) {
+    store.setFocusedNode(null)
+  }
+
+  // Refresh all markers
+  Object.values(mapNodeMarkers.value).forEach(marker => {
+    map.value?.removeLayer(marker)
+  })
+  mapNodeMarkers.value = {}
+  loadNodes()
 }
 
 </script>
