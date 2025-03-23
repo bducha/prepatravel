@@ -23,7 +23,13 @@ const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 
 const mapref = useTemplateRef('mapContainer')
-const mapHeight = ref(Number(localStorage.getItem('mapHeight')) || 500)
+const mapHeight = ref(Math.min(
+  Math.max(
+    Number(localStorage.getItem('mapHeight')) || 500,
+    window.innerHeight * 0.2
+  ),
+  window.innerHeight * 0.8
+))
 
 const map = ref<Map | null>(null);
 
@@ -46,20 +52,31 @@ onMounted(() => {
   loadNodes();
 })
 
-const dragMouseDown = () => {
+const dragMouseDown = (e: MouseEvent) => {
+  e.preventDefault()
   document.addEventListener('mousemove', dragMouseMoved, true);
+  document.addEventListener('mouseup', dragMouseUp, true);
 }
 
-const dragMouseUp = () => {
+const dragMouseUp = (e: MouseEvent) => {
+  e.preventDefault()
   document.removeEventListener('mousemove', dragMouseMoved, true);
+  document.removeEventListener('mouseup', dragMouseUp, true);
 }
 
 
 const dragMouseMoved = (e: MouseEvent) => {
-  mapref.value?.style.setProperty('height', `${mapHeight.value + e.movementY}px`)
-  mapHeight.value += e.movementY
-  localStorage.setItem('mapHeight', mapHeight.value.toString())
-  map.value?.invalidateSize()
+  e.preventDefault()
+  const newHeight = mapHeight.value + e.movementY
+  const minHeight = window.innerHeight * 0.2
+  const maxHeight = window.innerHeight * 0.8
+
+  if (newHeight >= minHeight && newHeight <= maxHeight) {
+    mapref.value?.style.setProperty('height', `${newHeight}px`)
+    mapHeight.value = newHeight
+    localStorage.setItem('mapHeight', mapHeight.value.toString())
+    map.value?.invalidateSize()
+  }
 }
 
 const loadNodes = () => {
