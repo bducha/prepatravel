@@ -1,13 +1,16 @@
 <template>
-  <div class="list-container">
+  <div class="list-container" ref="listContainer">
     <v-card 
-      class="map-node-card"
+      :class="{
+        'map-node-card': true,
+        'focused-card': store.focusedNode === node.id || store.selectedNode === node.id,
+        }"
       v-for="node in (mapNodes ?? [])"
       :key="node.id"
       :title="node.name"
-      :elevation="store.focusedNode === node.id ? 24 : 2"
       @mouseenter="mouseEnterCard(node.id)"
       @mouseleave="mouseLeaveCard()"
+      :data-node-id="node.id"
 
       >
       <v-card-text>
@@ -15,6 +18,7 @@
       </v-card-text>
       <v-card-actions>
         <v-btn color="error">Delete</v-btn>
+        <v-btn @click="() => store.setSelectedNode(node.id)" color="error">Focus</v-btn>
       </v-card-actions>
   </v-card>
   </div>
@@ -33,19 +37,27 @@ const store = useMapStore()
 const mapNodes = useObservable<MapNode[]>(from(liveQuery(() => db.mapNodes.toArray())))
 
 const mouseEnterCard = (id: number) => {
-  console.log("mouseenter", id)
   store.setFocusedNode(id)
 }
 
 const mouseLeaveCard = () => {
-  console.log("mouseleave")
   store.setFocusedNode(null)
 }
 
+const listContainer = ref<HTMLElement|null>(null)
+
+watch(() => store.selectedNode, (newVal) => {
+  if (!!listContainer.value) {
+    const selectedCard = listContainer.value.querySelector(`[data-node-id="${newVal}"]`)
+    if (selectedCard) {
+      selectedCard.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
+})
 
 </script>
 
-<style scoped>
+<style lang="scss"  scoped>
 :root {
   width: 100%;
 
@@ -56,10 +68,16 @@ const mouseLeaveCard = () => {
   }
 
   .map-node-card {
+    box-sizing: border-box;
     max-width: 500px;
     width: 40%;
     min-width: 300px;
     margin: 10px;
+
+  }
+
+  .focused-card {
+    box-shadow:inset 0px 0px 0px 1px rgb(var(--v-theme-primary));
   }
 }
 </style>

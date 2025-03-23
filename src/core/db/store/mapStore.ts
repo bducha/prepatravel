@@ -4,13 +4,20 @@ export const useMapStore = defineStore('mapStore', () => {
 
     const focusedNode = ref<number|null>(null)
 
+    const selectedNode = ref<number|null>(null)
+
     function setFocusedNode(id: number|null) {
-      console.log("setfocusednode", id)
       focusedNode.value = id
+    }
+
+    function setSelectedNode(id: number|null) {
+      selectedNode.value = id
     }
 
     return {
         focusedNode,
-        setFocusedNode
+        selectedNode,
+        setFocusedNode,
+        setSelectedNode
     }
 });
