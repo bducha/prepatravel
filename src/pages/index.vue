@@ -23,7 +23,7 @@ const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 
 const mapref = useTemplateRef('mapContainer')
-const mapHeight = ref(500)
+const mapHeight = ref(Number(localStorage.getItem('mapHeight')) || 500)
 
 const map = ref<Map | null>(null);
 
@@ -37,6 +37,7 @@ const mapNodeMarkers = ref<{ [key: number]: L.Marker }>({})
 
 
 onMounted(() => {
+  mapref.value?.style.setProperty('height', `${mapHeight.value}px`)
   map.value = L.map(mapref.value as HTMLElement).setView([46, 0], 5)
   L.tileLayer(TILE_URL, { attribution: ATTRIBUTION }).addTo(map.value as Map)
 
@@ -55,12 +56,10 @@ const dragMouseUp = () => {
 
 
 const dragMouseMoved = (e: MouseEvent) => {
-
-
   mapref.value?.style.setProperty('height', `${mapHeight.value + e.movementY}px`)
   mapHeight.value += e.movementY
+  localStorage.setItem('mapHeight', mapHeight.value.toString())
   map.value?.invalidateSize()
-
 }
 
 const loadNodes = () => {
@@ -172,7 +171,7 @@ const handleNodeDeleted = (id: number) => {
 
   #map {
     width: 100%;
-    height: 500px;
+    height: v-bind(mapHeight + 'px');
   }
 
   #drag-handle {
