@@ -112,11 +112,25 @@ watch(() => store.selectedNode, (newId, oldId) => {
 const addNodeMarker = (lat: number, lng: number, id: number) => {
   mapNodeMarkers.value[id] = L.marker(
     [lat, lng],
+    {draggable: true}
   ).addTo(map.value as Map)
 
   mapNodeMarkers.value[id].on('click', () => markerClicked(id))
   mapNodeMarkers.value[id].on('mouseover', () => markerMouseEntered(id))
   mapNodeMarkers.value[id].on('mouseout', () => markerMouseLeft(id))
+
+  mapNodeMarkers.value[id].on('dragend', (event) => {
+    const marker = event.target;
+    const position = marker.getLatLng();
+    
+    db.mapNodes.update(id, {
+      lat: position.lat,
+      lng: position.lng,
+      updated_at: new Date()
+    }).catch((err) => {
+      console.error("Failed to update marker position:", err);
+    });
+  });
 }
 
 const markerClicked = (id: number) => {
